@@ -1,0 +1,34 @@
+<html>
+<body id="body">
+
+</body>
+</html>
+<script src="vdom.js"></script>
+<script>
+    let body = document.getElementById("body");
+
+    let tree1 = vDomOperator.createElement(
+        "div",
+        { className: "big" },
+        vDomOperator.createElement("span", { className: "big-inner" }, "hehe"),
+        [1, 2, 3, 4, 5].map(n =>
+            vDomOperator.createElement("span", { className: "big-inner-number" }, n)
+        ),
+        vDomOperator.createElement("span", { className: "big-inner" }, "hehe")
+    );
+
+    let tree2 = vDomOperator.createElement(
+        "div",
+        { className: "big" },
+        vDomOperator.createElement("span", { className: "big-inner" , name: "tqlb"}, "hehe"),
+        [1, 2, 3, 4, "hzytql"].map(n =>
+            vDomOperator.createElement("span", { className: "big-inner-number" }, n)
+        ),
+        vDomOperator.createElement("span", { className: "small-inner" }, "hehe")
+    );
+
+
+    tree1.render(body);
+    vDomOperator.dfsSetIndex(tree1);
+    console.log(tree1);
+</script>
