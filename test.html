@@ -9,25 +9,25 @@
 
     let tree1 = vDomOperator.createElement(
         "div",
-        { className: "big" },
-        vDomOperator.createElement("span", { className: "big-inner" }, "hehe"),
+        { className: "big" , id:"hzytql" },
+        vDomOperator.createElement("span", { className: "big-inner" ,id:"zcytql"}, "hehe"),
         [1, 2, 3, 4, 5].map(n =>
-            vDomOperator.createElement("span", { className: "big-inner-number" }, n)
+            vDomOperator.createElement("span", { className: "big-inner-number" ,id:"wnjtql"+n}, n)
         ),
-        vDomOperator.createElement("span", { className: "big-inner" }, "hehe")
+        vDomOperator.createElement("span", { className: "big-inner",id:"wqytql" }, "hehe")
     );
 
     let tree2 = vDomOperator.createElement(
         "div",
-        { className: "big" },
-        vDomOperator.createElement("span", { className: "big-inner" }, "hehe"),
-        [7, 2, 4, 5].map(n =>
-            vDomOperator.createElement("span", { className: "big-inner-number" }, n)
+        { className: "big" , id:"hzytql" },
+        vDomOperator.createElement("span", { className: "big-inner" ,id:"zcytql"}, "hehe"),
+        [7, 2, 3, 4].map(n =>
+            vDomOperator.createElement("span", { className: "big-inner-number" ,id:"wnjtql"+n}, n)
         ),
-        vDomOperator.createElement("span", { className: "big-inner" }, "hehe")
+        vDomOperator.createElement("span", { className: "big-inner",id:"wqytql" }, "hehe")
     );
 
     tree1.render(body);
-
-
+    let result = vDomOperator.diff(tree1,tree2);
+    console.log(result);
 </script>
