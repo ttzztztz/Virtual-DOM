@@ -20,15 +20,14 @@
     let tree2 = vDomOperator.createElement(
         "div",
         { className: "big" },
-        vDomOperator.createElement("span", { className: "big-inner" , name: "tqlb"}, "hehe"),
-        [1, 2, 3, 4, "hzytql"].map(n =>
+        vDomOperator.createElement("span", { className: "big-inner" }, "hehe"),
+        [7, 2, 4, 5].map(n =>
             vDomOperator.createElement("span", { className: "big-inner-number" }, n)
         ),
-        vDomOperator.createElement("span", { className: "small-inner" }, "hehe")
+        vDomOperator.createElement("span", { className: "big-inner" }, "hehe")
     );
 
-
     tree1.render(body);
-    vDomOperator.dfsSetIndex(tree1);
-    console.log(tree1);
+
+
 </script>
