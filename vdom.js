@@ -2,10 +2,8 @@ const DIFF_DELETE = 0;
 const DIFF_CREATE = 1;
 const DIFF_UPDATE_ATTR = 2;
 const DIFF_SIMULATE = 3;
-
-const EQUAL_YES = 1;
-const EQUAL_NO_ALL = 0;
-const EQUAL_NO_ATTR = -1;
+const DIFF_UPDATE_TEXT = 4;
+const DIFF_DELETE_ATTR = 5;
 
 class vDom {
     constructor(tagName, props, ...children) {
@@ -54,142 +52,159 @@ class vDomOperator {
         return new vDom(tagName, props, ...children);
     }
 
-    // static dfsSetIndex(tree) {
-    //     vDomDfsIndex = 0;
-    //     vDomOperator._dfsSetIndex(tree);
-    // }
-    //
-    // static _dfsSetIndex(tree) {
-    //     if (!(tree.children instanceof Array)) return;
-    //     for (let child of tree.children) {
-    //         if (child instanceof Array) {
-    //             for (let _child of child) {
-    //                 _child.id = vDomDfsIndex++;
-    //             }
-    //         } else if (child instanceof vDom) {
-    //             child.id = vDomDfsIndex++;
-    //         }
-    //         vDomOperator._dfsSetIndex(child);
-    //     }
-    // }
-    // static vDomEquals(vDom1, vDom2) {
-    //     if (vDom1 instanceof vDom && vDom2 instanceof vDom) {
-    //         if (vDom1.tagName !== vDom2.tagName) return false;
-    //         if(vDom1.props.length>0 || vDom2.props.length>0){
-    //             for (let propKey in vDom1.props) {
-    //                 if ((!vDom2.hasOwnProperty(propKey)) || vDom2[propKey] !== vDom1[propKey]) {
-    //                     return false;
-    //                 }
-    //             }
-    //         }
-    //
-    //         if( !(vDom1.children[0] instanceof Array || vDom1.children[0] instanceof vDom) && !(vDom2.children[0] instanceof Array ||  vDom2.children[0] instanceof vDom) && vDom1.children.length===1 && vDom2.children.length===1 ){
-    //
-    //             if(vDom1.children[0] !== vDom2.children[0]){
-    //                 return false;
-    //             }
-    //         }
-    //         return true;
-    //     } else {
-    //         return vDom1 === vDom2;
-    //     }
-    // }
-    //
-
-    static vDomSuperEquals(vDom1, vDom2) {
-        if (vDom1 instanceof vDom && vDom2 instanceof vDom) {
-            if (vDom1.tagName !== vDom2.tagName) return EQUAL_NO_ALL;
-            if (vDom1.props.length > 0 || vDom2.props.length > 0) {
-                for (let propKey in vDom1.props) {
-                    if ((!vDom2.hasOwnProperty(propKey)) || vDom2[propKey] !== vDom1[propKey]) {
-                        return EQUAL_NO_ATTR;
+    static listDiff(arr1, arr2) {
+        let patch = [];
+        // step1 -> Generate Simulate Array
+        let len1 = arr1.length, len2 = arr2.length;
+        let simulateArray = [];
+        {
+            let pt2 = 0;
+            for (let pt1 = 0; pt1 < len1; pt1++) {
+                let init = 1, lastPt2 = pt2, found = 0;
+                let obj1 = arr1[pt1];
+                while (init || lastPt2 !== pt2) {
+                    let obj2 = arr2[pt2];
+                    init = 0;
+                    if (obj1.id === obj2.id) {
+                        //founded
+                        let simulateDiff = new vPatchTree(obj1.tagName, obj1.props, DIFF_SIMULATE, undefined, obj1.id);
+                        simulateArray.push(simulateDiff);
+                        found = 1;
+                        break;
                     }
+                    pt2++;
+                    if (pt2 >= len2) pt2 -= len2;
+                }
+                if (!found) {
+                    let notFoundDiff = new vPatchTree(obj1.tagName, obj1.props, DIFF_DELETE, undefined, obj1.id);
+                    patch.push(notFoundDiff);
                 }
             }
-            return EQUAL_YES;
-        } else {
-            return vDom1 === vDom2 ? EQUAL_YES : EQUAL_NO_ALL;
         }
+        // step2 -> compare simulate Array with Array2
+        {
+            let pt1 = 0;
+            for (let pt2 = 0; pt2 < len2; pt2++) {
+                let obj1 = simulateArray[pt1], obj2 = arr2[pt2] , obj1_raw = arr1[pt1];
+                // todo: diff text node
+
+                // if (vDomOperator.isTextNode(obj1) || vDomOperator.isTextNode(obj2)) {
+                //     if (obj1 !== obj2) {
+                //         let diffPatch = new vPatchTree(undefined, undefined, DIFF_UPDATE_TEXT, [obj2, parent], parent);
+                //         patch.push(diffPatch);
+                //     }
+                //     continue;
+                // }
+                if (obj1.id !== obj2.id) {//no Exist -> add
+                    let newDiff = new vPatchTree(obj2.tagName, obj2.props, DIFF_CREATE, [pt2, obj2.children], obj2.id);
+                    patch.push(newDiff);
+                } else {//already Exist -> diff
+                    pt1 ++ ;
+                    let attrPatch = [], deletePatch = [];
+                    if (obj1.props.length > 0 || obj2.props.length > 0) {
+                        for (let propKey in obj2.props) {
+                            if ((!obj1.props.hasOwnProperty(propKey)) || obj2.props[propKey] !== obj1.props[propKey]) {
+                                attrPatch[propKey] = obj2.props[propKey];
+                            }
+                        }
+                        for (let propKey in obj1.props) {
+                            if (!obj2.props.hasOwnProperty(propKey)) {
+                                deletePatch[propKey] = obj2.props[propKey];
+                            }
+                        }
+                    }
+                    if (attrPatch.length > 0) {
+                        let patchData = vDomOperator.isTextNode(obj2.children) ? obj2.children : undefined;
+                        let diffAttr = new vPatchTree(obj2.tagName, attrPatch, DIFF_UPDATE_ATTR, patchData, obj2.id);
+                        patch.push(diffAttr);
+                    }
+                    if (deletePatch.length > 0) {
+                        let deleteAttr = new vPatchTree(obj2.tagName, deletePatch, DIFF_DELETE_ATTR, undefined, obj2.id);
+                        patch.push(deleteAttr);
+                    }
+
+                    if (
+                        (obj1_raw.children.length > 0 || obj2.children.length > 0)
+                        && obj1_raw.children instanceof vDom
+                        && obj2.children instanceof vDom
+                    ) {
+                        let diffPatch = vDomOperator.diff(obj1_raw.children, obj2.children);
+                        patch.push(...diffPatch);
+                    }
+
+
+                }
+            }
+        }
+        return patch;
     }
 
-    static diffSimulateArray(treeOld, treeNew) {
-        if (treeOld === undefined || treeNew === undefined) return [];
-        let result = [];
-        for (let pt = 0, len = treeOld.children.length; pt < len; pt++) {
-            let child = treeOld.children[pt];
-            if (child instanceof Array) {
-                let pt2 = 0;
-                let treeNewChild = treeNew.children[pt];
-                for (let pt1 = 0, len = child.length; pt1 < len; pt1++) {
-                    let lastPt2 = pt2, flag = 1, found = 0;
-                    while (lastPt2 !== pt2 || flag) {
-                        flag = 0;
-                        pt2++;
-                        if (pt2 >= treeNewChild.length) {
-                            pt2 -= treeNewChild.length;
-                        }
-                        if (child[pt1].id === treeNewChild[pt2].id) {
-                            found = 1;
-                            break;
-                        }
-                    }
-                    if (found) {
-                        let addvDom = new vPatchTree(child[pt1].tagName, child[pt1].props, DIFF_SIMULATE, null, child[pt1].id);
-                        result.push(addvDom);
-                    } else {
-                        let deletevDom = new vPatchTree(child[pt1].tagName, child[pt1].props, DIFF_DELETE, null, child[pt1].id);
-                        result.push(deletevDom);
-                    }
-                }
-            }
-            //todo:递归result查询，找准是和谁进行diff
-
-            // else if (child instanceof vDom) {
-            //     let toPush = vDomOperator.diffSimulateArray(child);
-            //     if (toPush.length > 0) {
-            //         result.push(toPush);
-            //     }
-            // }
-        }
-        return result;
+    static isTextNode(tree) {
+        return tree instanceof Number || tree instanceof String;
     }
 
     static diff(tree1, tree2) {
-        if(tree1.children.length===0 && tree2.children.length===0) return [];
+        if (
+            tree1.children instanceof Array
+            && tree2.children instanceof Array
+            && tree1.children.length !== tree2.children.length
+        ) return [];
+
+        if (tree1 instanceof Array || tree2 instanceof Array) {
+            return [];
+        }
+
+        if (
+            vDomOperator.isTextNode(tree1.children)
+            && vDomOperator.isTextNode(tree2.children)
+            && tree1.children !== tree2.children
+        ) {
+            let textPatchDiff = new vPatchTree(undefined, undefined, DIFF_UPDATE_TEXT, tree2.children, tree2.id);
+            return [textPatchDiff];
+        }
+
         let patch = [];
-        let simulateArray = vDomOperator.diffSimulateArray(tree1, tree2);
-        let pt1 = 0;
-
-        simulateArray = simulateArray.filter((item, index, array) => {
-            if (item instanceof vPatchTree && item.operation === DIFF_DELETE) {
-                patch.push(item);
-                return false;
-            } else {
-                return true;
-            }
-        });
-
-        for (let pt2 = 0, len = tree2.children.length; pt2 < len; pt2++) {
-            let result = vDomOperator.vDomSuperEquals(simulateArray[pt1], tree2.children[pt2]);
-
-
-            if (tree2.children[pt2] instanceof vDom && tree1.children[pt1].id === tree2.children[pt2].id) {
-                let result = vDomOperator.diff(tree1.children[pt1], tree2.children[pt2]);
-                patch.push(...result);
-            }
-
-            if (result === EQUAL_NO_ATTR) {//update attr
-                let diffProp = [];
-                for (let propKey in tree2.children[pt2]) {
-                    if (simulateArray.props[propKey] !== tree2.children[pt2].props[propKey]) {
-                        diffProp[propKey] = tree2.children[pt2].props[propKey];
+        for (let pt = 0, len = tree1.children.length; pt < len; pt++) {
+            let child_tree1 = tree1.children[pt], child_tree2 = tree2.children[pt];
+            if (child_tree1 instanceof Array) {
+                patch.push(...vDomOperator.listDiff(child_tree1, child_tree2));
+            } else if (child_tree1 instanceof vDom) {
+                let attrPatch = [], deletePatch = [];
+                if (child_tree1.props.length > 0 || child_tree2.props.length > 0) {
+                    for (let propKey in child_tree2.props) {
+                        if (
+                            (!child_tree1.props.hasOwnProperty(propKey))
+                            || child_tree2.props[propKey] !== child_tree1.props[propKey]
+                        ) {
+                            attrPatch[propKey] = child_tree2.props[propKey];
+                        }
+                    }
+                    for (let propKey in child_tree1.props) {
+                        if (!child_tree2.props.hasOwnProperty(propKey)) {
+                            deletePatch[propKey] = child_tree2.props[propKey];
+                        }
                     }
                 }
-                let diffTree = new vPatchTree(tree2.children[pt2].tagName, diffProp, DIFF_UPDATE_ATTR, null, tree2.children[pt2].id);
-                patch.push(diffTree);
-            } else if (result === EQUAL_NO_ALL) {
-                let diffTree = new vPatchTree(tree2.children[pt2].tagName, tree2.children[pt2].props, DIFF_CREATE, pt2, undefined);
-                patch.push(diffTree);
+                if (attrPatch.length > 0) {
+                    let diffAttr = new vPatchTree(child_tree2.tagName, attrPatch, DIFF_UPDATE_ATTR, undefined.id);
+                    patch.push(diffAttr);
+                }
+                if (deletePatch.length > 0) {
+                    let deleteAttr = new vPatchTree(child_tree2.tagName, deletePatch, DIFF_DELETE_ATTR, undefined, child_tree2.id);
+                    patch.push(deleteAttr);
+                }
+
+                if (child_tree1.children instanceof vDom && child_tree2.children instanceof vDom) {
+                    let patchChildren = vDomOperator.diff(child_tree1.children, child_tree2.children);
+                    if (patchChildren.length > 0) {
+                        patch.push(...patchChildren);
+                    }
+                }
+            } else if (vDomOperator.isTextNode(child_tree1)) {
+                if (child_tree1 !== child_tree2) {
+                    let diffTree = new vPatchTree(undefined, undefined, DIFF_UPDATE_TEXT, child_tree2, child_tree2.id);
+                    patch.push(diffTree);
+                }
             }
         }
         return patch;
