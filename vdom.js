@@ -13,7 +13,7 @@ class vDom {
         this.children = children;
     }
 
-    render(root) {
+    _render() {
         let _dom = document.createElement(this.tagName);
         for (let propKey in this.props) {
             _dom[propKey] = this.props[propKey];
@@ -25,10 +25,15 @@ class vDom {
                 for (let __children of _children) {
                     __children.render(_dom);
                 }
-            } else if (_children instanceof String) {
+            } else if (typeof _children === "string" || typeof _children === "number") {
                 _dom.innerHTML += _children;
             }
         }
+        return _dom;
+    }
+
+    render(root) {
+        let _dom = this._render();
         root.appendChild(_dom);
     }
 }
@@ -40,6 +45,7 @@ class vPatchTree {
         this.diffData = diffData;
         this.id = id;
         this.operation = operation;
+        this.applied = 0;
     }
 }
 
@@ -67,7 +73,7 @@ class vDomOperator {
                     init = 0;
                     if (obj1.id === obj2.id) {
                         //founded
-                        let simulateDiff = new vPatchTree(obj1.tagName, obj1.props, DIFF_SIMULATE, undefined, obj1.id);
+                        let simulateDiff = new vPatchTree(obj1.tagName, obj1.props, DIFF_SIMULATE, pt1, obj1.id);
                         simulateArray.push(simulateDiff);
                         found = 1;
                         break;
@@ -76,7 +82,7 @@ class vDomOperator {
                     if (pt2 >= len2) pt2 -= len2;
                 }
                 if (!found) {
-                    let notFoundDiff = new vPatchTree(obj1.tagName, obj1.props, DIFF_DELETE, undefined, obj1.id);
+                    let notFoundDiff = new vPatchTree(obj1.tagName, obj1.props, DIFF_DELETE, pt1, obj1.id);
                     patch.push(notFoundDiff);
                 }
             }
@@ -85,54 +91,37 @@ class vDomOperator {
         {
             let pt1 = 0;
             for (let pt2 = 0; pt2 < len2; pt2++) {
-                let obj1 = simulateArray[pt1], obj2 = arr2[pt2] , obj1_raw = arr1[pt1];
-                // todo: diff text node
-
-                // if (vDomOperator.isTextNode(obj1) || vDomOperator.isTextNode(obj2)) {
-                //     if (obj1 !== obj2) {
-                //         let diffPatch = new vPatchTree(undefined, undefined, DIFF_UPDATE_TEXT, [obj2, parent], parent);
-                //         patch.push(diffPatch);
-                //     }
-                //     continue;
-                // }
+                let obj1 = simulateArray[pt1], obj2 = arr2[pt2];
                 if (obj1.id !== obj2.id) {//no Exist -> add
-                    let newDiff = new vPatchTree(obj2.tagName, obj2.props, DIFF_CREATE, [pt2, obj2.children], obj2.id);
+                    let newDiff = new vPatchTree(obj2.tagName, obj2.props, DIFF_CREATE, [pt1 >= simulateArray.length ? simulateArray[simulateArray.length - 1] : obj1.id, obj2.children, pt1 >= simulateArray.length], obj2.id);
                     patch.push(newDiff);
                 } else {//already Exist -> diff
-                    pt1 ++ ;
-                    let attrPatch = [], deletePatch = [];
-                    if (obj1.props.length > 0 || obj2.props.length > 0) {
+                    pt1++;
+                    let attrPatch = {}, deletePatch = {};
+                    let hasAttrPatch = 0, hasDeletePatch = 0;
+                    if (obj1.props.hasOwnProperty("id") || obj2.props.hasOwnProperty("id")) {
                         for (let propKey in obj2.props) {
                             if ((!obj1.props.hasOwnProperty(propKey)) || obj2.props[propKey] !== obj1.props[propKey]) {
                                 attrPatch[propKey] = obj2.props[propKey];
+                                hasAttrPatch = 1;
                             }
                         }
                         for (let propKey in obj1.props) {
                             if (!obj2.props.hasOwnProperty(propKey)) {
                                 deletePatch[propKey] = obj2.props[propKey];
+                                hasDeletePatch = 1;
                             }
                         }
                     }
-                    if (attrPatch.length > 0) {
-                        let patchData = vDomOperator.isTextNode(obj2.children) ? obj2.children : undefined;
+                    if (hasAttrPatch) {
+                        let patchData = this.isTextNode(obj2.children) ? obj2.children : undefined;
                         let diffAttr = new vPatchTree(obj2.tagName, attrPatch, DIFF_UPDATE_ATTR, patchData, obj2.id);
                         patch.push(diffAttr);
                     }
-                    if (deletePatch.length > 0) {
+                    if (hasDeletePatch) {
                         let deleteAttr = new vPatchTree(obj2.tagName, deletePatch, DIFF_DELETE_ATTR, undefined, obj2.id);
                         patch.push(deleteAttr);
                     }
-
-                    if (
-                        (obj1_raw.children.length > 0 || obj2.children.length > 0)
-                        && obj1_raw.children instanceof vDom
-                        && obj2.children instanceof vDom
-                    ) {
-                        let diffPatch = vDomOperator.diff(obj1_raw.children, obj2.children);
-                        patch.push(...diffPatch);
-                    }
-
-
                 }
             }
         }
@@ -140,10 +129,11 @@ class vDomOperator {
     }
 
     static isTextNode(tree) {
-        return tree instanceof Number || tree instanceof String;
+        return typeof tree === "number" || typeof tree === "string" || (tree instanceof Array && tree.length === 1 && (typeof tree[0] === "number" || typeof tree[0] === "string"));
     }
 
     static diff(tree1, tree2) {
+        let patch = [];
         if (
             tree1.children instanceof Array
             && tree2.children instanceof Array
@@ -155,63 +145,141 @@ class vDomOperator {
         }
 
         if (
-            vDomOperator.isTextNode(tree1.children)
-            && vDomOperator.isTextNode(tree2.children)
+            this.isTextNode(tree1.children)
+            && this.isTextNode(tree2.children)
             && tree1.children !== tree2.children
         ) {
             let textPatchDiff = new vPatchTree(undefined, undefined, DIFF_UPDATE_TEXT, tree2.children, tree2.id);
             return [textPatchDiff];
         }
 
-        let patch = [];
         for (let pt = 0, len = tree1.children.length; pt < len; pt++) {
             let child_tree1 = tree1.children[pt], child_tree2 = tree2.children[pt];
             if (child_tree1 instanceof Array) {
-                patch.push(...vDomOperator.listDiff(child_tree1, child_tree2));
+                patch.push(...this.listDiff(child_tree1, child_tree2));
             } else if (child_tree1 instanceof vDom) {
-                let attrPatch = [], deletePatch = [];
-                if (child_tree1.props.length > 0 || child_tree2.props.length > 0) {
+                let attrPatch = {}, deletePatch = {};
+                let hasAttrPatch = 0, hasDeletePatch = 0;
+                if (child_tree1.props.hasOwnProperty("id") || child_tree2.props.hasOwnProperty("id")) {
                     for (let propKey in child_tree2.props) {
                         if (
-                            (!child_tree1.props.hasOwnProperty(propKey))
+                            !child_tree1.props.hasOwnProperty(propKey)
                             || child_tree2.props[propKey] !== child_tree1.props[propKey]
                         ) {
+                            hasAttrPatch = 1;
                             attrPatch[propKey] = child_tree2.props[propKey];
                         }
                     }
                     for (let propKey in child_tree1.props) {
                         if (!child_tree2.props.hasOwnProperty(propKey)) {
+                            hasDeletePatch = 1;
                             deletePatch[propKey] = child_tree2.props[propKey];
                         }
                     }
                 }
-                if (attrPatch.length > 0) {
-                    let diffAttr = new vPatchTree(child_tree2.tagName, attrPatch, DIFF_UPDATE_ATTR, undefined.id);
+
+                if (hasAttrPatch) {
+                    let diffAttr = new vPatchTree(child_tree2.tagName, attrPatch, DIFF_UPDATE_ATTR, attrPatch, child_tree2.id);
                     patch.push(diffAttr);
                 }
-                if (deletePatch.length > 0) {
-                    let deleteAttr = new vPatchTree(child_tree2.tagName, deletePatch, DIFF_DELETE_ATTR, undefined, child_tree2.id);
+                if (hasDeletePatch) {
+                    let deleteAttr = new vPatchTree(child_tree2.tagName, deletePatch, DIFF_DELETE_ATTR, deletePatch, child_tree2.id);
                     patch.push(deleteAttr);
                 }
 
                 if (child_tree1.children instanceof vDom && child_tree2.children instanceof vDom) {
-                    let patchChildren = vDomOperator.diff(child_tree1.children, child_tree2.children);
+                    let patchChildren = this.diff(child_tree1.children, child_tree2.children);
                     if (patchChildren.length > 0) {
                         patch.push(...patchChildren);
                     }
-                }
-            } else if (vDomOperator.isTextNode(child_tree1)) {
-                if (child_tree1 !== child_tree2) {
-                    let diffTree = new vPatchTree(undefined, undefined, DIFF_UPDATE_TEXT, child_tree2, child_tree2.id);
-                    patch.push(diffTree);
+                } else if (!this.isTextNode(child_tree1.children) && !this.isTextNode(child_tree2.children)) {
+                    let result = this.diff(child_tree1, child_tree2);
+                    patch.push(...result);
+                } else if (this.isTextNode(child_tree1.children) && this.isTextNode(child_tree2.children)) {
+                    if (child_tree1.children[0] !== child_tree2.children[0]) {
+                        let diffTree = new vPatchTree(undefined, child_tree2.props, DIFF_UPDATE_TEXT, child_tree2.children[0], child_tree2.id);
+                        patch.push(diffTree);
+                    }
                 }
             }
         }
         return patch;
     }
 
-    static patch(tree, patch) {
+    static createPatch(patch) {
+        let [relative, child, appendMode] = patch.diffData;
+        let relativeElement = document.getElementById(relative);
+        let parentElement = relativeElement.parentElement;
+        let newElement = (new vDom(patch.tagName, patch.props, child))._render();
+        console.log(newElement);
+        if (appendMode) {
+            parentElement.appendChild(newElement);
+        } else {
+            parentElement.insertBefore(newElement, relativeElement);
+        }
+    }
 
+    static deletePatch(patch) {
+        let dom = document.getElementById(patch.id);
+        dom.remove();
+    }
+
+    static updateAttrPatch(patch) {
+        let dom = document.getElementById(patch.id);
+        let diffData = patch.diffData;
+        for (let propKey in diffData) {
+            dom[propKey] = diffData[propKey];
+        }
+    }
+
+    static updateTextPatch(patch) {
+        let dom = document.getElementById(patch.id);
+        dom.innerHTML = patch.diffData;
+    }
+
+    static deleteAttrPatch(patch) {
+        let dom = document.getElementById(patch.id);
+        let diffData = patch.diffData;
+        for (let propKey in diffData) {
+            dom[propKey] = "";
+        }
+    }
+
+    static dfsPatch(tree, patch) {
+        for (let _patch of patch) {
+            if (_patch.applied) continue;
+            if (patch.id === tree.id) {
+                switch (patch.operation) {
+                    case DIFF_CREATE:
+                        this.createPatch(patch);
+                        break;
+                    case DIFF_DELETE:
+                        this.deletePatch(patch);
+                        break;
+                    case DIFF_UPDATE_ATTR:
+                        this.updateAttrPatch(patch);
+                        break;
+                    case DIFF_UPDATE_TEXT:
+                        this.updateTextPatch(patch);
+                        break;
+                    case DIFF_DELETE_ATTR:
+                        this.deleteAttrPatch(patch);
+                        break;
+                }
+            }
+            _patch.applied = 1;
+        }
+        for (let child of tree.children) {
+            if (child instanceof vDom) {
+                this.dfsPatch(child, patch);
+            } else if (child instanceof Array) {
+                for (let _child of child) {
+                    if (_child instanceof vDom) {
+                        this.dfsPatch(_child, patch);
+                    }
+                }
+            }
+        }
     }
 
 }
