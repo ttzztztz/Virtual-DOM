@@ -210,8 +210,8 @@ class vDomOperator {
         let [relative, child, appendMode] = patch.diffData;
         let relativeElement = document.getElementById(relative);
         let parentElement = relativeElement.parentElement;
-        let newElement = (new vDom(patch.tagName, patch.props, child))._render();
-        console.log(newElement);
+        let vdom = new vDom(patch.tagName, patch.props, ...child);
+        let newElement = vdom._render();
         if (appendMode) {
             parentElement.appendChild(newElement);
         } else {
@@ -248,27 +248,26 @@ class vDomOperator {
     static dfsPatch(tree, patch) {
         for (let _patch of patch) {
             if (_patch.applied) continue;
-            if (patch.id === tree.id) {
-                switch (patch.operation) {
-                    case DIFF_CREATE:
-                        this.createPatch(patch);
-                        break;
-                    case DIFF_DELETE:
-                        this.deletePatch(patch);
-                        break;
-                    case DIFF_UPDATE_ATTR:
-                        this.updateAttrPatch(patch);
-                        break;
-                    case DIFF_UPDATE_TEXT:
-                        this.updateTextPatch(patch);
-                        break;
-                    case DIFF_DELETE_ATTR:
-                        this.deleteAttrPatch(patch);
-                        break;
-                }
+            switch (_patch.operation) {
+                case DIFF_CREATE:
+                    this.createPatch(_patch);
+                    break;
+                case DIFF_DELETE:
+                    this.deletePatch(_patch);
+                    break;
+                case DIFF_UPDATE_ATTR:
+                    this.updateAttrPatch(_patch);
+                    break;
+                case DIFF_UPDATE_TEXT:
+                    this.updateTextPatch(_patch);
+                    break;
+                case DIFF_DELETE_ATTR:
+                    this.deleteAttrPatch(_patch);
+                    break;
             }
             _patch.applied = 1;
         }
+
         for (let child of tree.children) {
             if (child instanceof vDom) {
                 this.dfsPatch(child, patch);
@@ -280,6 +279,7 @@ class vDomOperator {
                 }
             }
         }
+
     }
 
 }
