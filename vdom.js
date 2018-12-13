@@ -195,7 +195,7 @@ class vDomOperator {
                 patch.push(deleteAttr);
             }
         }
-        
+
         for (let pt = 0, len = tree1.children.length; pt < len; pt++) {
             let child_tree1 = tree1.children[pt], child_tree2 = tree2.children[pt];
             if (child_tree1 instanceof Array) {

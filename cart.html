@@ -19,6 +19,7 @@
             this.checked = checked;
             this.deleted = false;
         }
+
         render() {
             return createComponent(this.name, this.num, this.checked);
         }
@@ -26,7 +27,8 @@
 
     let store = {
         shopItems: [],
-        disabled: false
+        disabled: false,
+        addOneInput: "hzytql"
     };
 
     function createBody(store) {
@@ -54,7 +56,11 @@
                 onclick: deleteSelect
             }, "Delete Select"),
             vDomOperator.createElement("br", {id: "br1"}),
-            vDomOperator.createElement("input", {id: "Item Name"}),
+            vDomOperator.createElement("input", {
+                id: "Item Name",
+                value: "hzytql",
+                oninput: addOneInput
+            }),
             vDomOperator.createElement("button", {id: "addOne", onclick: addOne}, "Add One"),
         )];
     }
@@ -79,7 +85,9 @@
             vDomOperator.createElement("input", {
                 id: "num_" + id,
                 type: "input",
-                value: num
+                value: num,
+                name: id,
+                oninput: numOnInput
             }, "-"),
             vDomOperator.createElement("button", {
                 id: "add_" + id,
@@ -99,6 +107,23 @@
 
     let [vOL, vBody] = createBody(store);
     vBody.render(document.body);
+
+    function addOneInput(e) {
+        store.addOneInput = e.target.value;
+    }
+
+    function numOnInput(e) {
+        let itemName = e.target.name;
+        e.target.value = e.target.value.replace(/[^0-9]/g, "");
+        for (let item of store.shopItems) {
+            if (itemName === item.name) {
+                item.num = Number.parseInt(e.target.value);
+                break;
+            }
+        }
+        let [ol, newTree] = createBody(store);
+        diffvDom(vOL, ol, false);
+    }
 
     function updatevDomCheckBox(e) {
         let itemName = e.target.name;
@@ -131,8 +156,8 @@
 
     function deleteSelect() {
         let [ol, newTree] = createBody(store);
-        ol.children = ol.children.filter((item, index, array) => {
-            if (vOL.children[index].children[0].props.checked === "checked") {
+        ol.children[0] = ol.children[0].filter((item, index, array) => {
+            if (store.shopItems[index].checked) {
                 store.shopItems[index].deleted = true;
                 return false;
             } else {
@@ -146,17 +171,34 @@
     }
 
     function addOne() {
-
+        let find = 0 , shopItem = null;
+        store.shopItems.some((item, index, array) => {
+            if (item.name === store.addOneInput) {
+                shopItem = item;
+                find = 1;
+                return true;
+            } else {
+                return false;
+            }
+        });
+        if (find) {
+            shopItem.num ++;
+        } else {
+            shopItem = new ShopItem(store.addOneInput, 1, false);
+            store.shopItems.push(shopItem);
+        }
+        let [ol, newTree] = createBody(store);
+        diffTree(vOL, ol);
     }
 
     function diffTree(oldTree, newTree) {
         let diff = vDomOperator.diff(oldTree, newTree);
-        console.log(oldTree,newTree,diff);
+        console.log(oldTree, newTree, diff);
         vDomOperator.patch(diff);
     }
 
-    function diffvDom(oldTree,newTree) {
+    function diffvDom(oldTree, newTree) {
         let diff = vDomOperator.diff(oldTree, newTree);
-        vDomOperator.patch(diff,false);
+        vDomOperator.patch(diff, false);
     }
 </script>
