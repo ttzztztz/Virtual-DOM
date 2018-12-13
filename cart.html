@@ -7,184 +7,156 @@
     <title>Test</title>
 </head>
 <body>
-<div>
-    <ol id="list">
 
-    </ol>
-    <div style="padding-left: 40px">
-        <button id="selectAll">Select All</button>
-        <button id="invertSelect">Invert Selection</button>
-        <br>
-        <button id="deleteSelect">Delete All Selected</button>
-        <br>
-        <input type="text" id="itemName"/>
-        <button id="addOne">Add One</button>
-    </div>
-</div>
 </body>
 </html>
-<script  src="vdom.js"></script>
+<script src="vdom.js"></script>
 <script>
-    let jselectAll = document.querySelector("#selectAll");
-    let jinvertSelect = document.querySelector("#invertSelect");
-    let jdeleteSelect = document.querySelector("#deleteSelect");
-    let jitemName = document.querySelector("#itemName");
-    let jaddOne = document.querySelector("#addOne");
-    let jlist = document.querySelector("#list");
+    class ShopItem {
+        constructor(name, num, checked) {
+            this.name = name;
+            this.num = num;
+            this.checked = checked;
+            this.deleted = false;
+        }
+        render() {
+            return createComponent(this.name, this.num, this.checked);
+        }
+    }
 
-    let is_disabled = false;
-    let item_arr = new Array();
-    let item_all_count = 0;
-    let shop_item = {
-        _item_name : "test",
-        _item_count : 0,
+    let store = {
+        shopItems: [],
+        disabled: false
     };
-    Object.defineProperty(shop_item,"item_name", {
-        get : function() {return this._item_name;},
-        set : function(data){
-            this._item_name = data;
-            if(!item_arr[data]) {//不存在则创建
-                let _li = document.createElement("li");
-                _li.id = "li_"+data;
-                _li.dataset.title = data;
 
-                let _check_input = document.createElement("input");
-                _check_input.id = "check_"+data;
-                _check_input.type = "checkbox";
-                _check_input.dataset.title = data;
-                _check_input.dataset.opt = "check";
+    function createBody(store) {
+        let shopItemvDomArr = [];
+        for (let item of store.shopItems) {
+            shopItemvDomArr.push(item.render());
+        }
+        let ol = vDomOperator.createElement("ol", {id: "list"}, shopItemvDomArr);
+        return [ol, vDomOperator.createElement(
+            "div", {id: "container"},
+            ol,
+            vDomOperator.createElement("button", {
+                id: "selectAll",
+                disabled: store.disabled ? "disabled" : "",
+                onclick: selectAll
+            }, "Select All"),
+            vDomOperator.createElement("button", {
+                id: "invertSelect",
+                disabled: store.disabled ? "disabled" : "",
+                onclick: invertSelect
+            }, "Invert Select"),
+            vDomOperator.createElement("button", {
+                id: "deleteSelect",
+                disabled: store.disabled ? "disabled" : "",
+                onclick: deleteSelect
+            }, "Delete Select"),
+            vDomOperator.createElement("br", {id: "br1"}),
+            vDomOperator.createElement("input", {id: "Item Name"}),
+            vDomOperator.createElement("button", {id: "addOne", onclick: addOne}, "Add One"),
+        )];
+    }
 
-                let _span = document.createElement("span");
-                _span.id="title_"+data;
-                _span.dataset.title = data;
-                _span.innerHTML = data;
+    function createComponent(id, num, checked) {
+        return vDomOperator.createElement(
+            "li", {id: "li_" + id},
+            vDomOperator.createElement("input", {
+                id: "check_" + id,
+                type: "checkbox",
+                name: id,
+                checked: checked ? "checked" : "",
+                onchange: updatevDomCheckBox
+            }),
+            vDomOperator.createElement("span", {
+                id: "title_" + id
+            }, id),
+            vDomOperator.createElement("button", {
+                id: "min_" + id,
+                name: id
+            }, "-"),
+            vDomOperator.createElement("input", {
+                id: "num_" + id,
+                type: "input",
+                value: num
+            }, "-"),
+            vDomOperator.createElement("button", {
+                id: "add_" + id,
+                name: id
+            }, "+"),
+            vDomOperator.createElement("button", {
+                id: "del_" + id,
+                name: id
+            }, "Delete")
+        );
+    }
 
-                let min_btn = document.createElement("button");
-                min_btn.id="min_"+data;
-                min_btn.dataset.title = data;
-                min_btn.dataset.opt="min";
-                min_btn.innerHTML = "-";
-                min_btn.addEventListener("click",min_btn_onClick);
+    for (let i = 1; i <= 3; i++) {
+        let shopItem = new ShopItem("test" + i, 1, false);
+        store.shopItems.push(shopItem);
+    }
 
-                let add_btn = document.createElement("button");
-                add_btn.id="add_"+data;
-                add_btn.dataset.title = data;
-                add_btn.dataset.opt="add";
-                add_btn.innerHTML = "+";
-                add_btn.addEventListener("click",add_btn_onClick);
+    let [vOL, vBody] = createBody(store);
+    vBody.render(document.body);
 
-                let del_btn = document.createElement("button");
-                del_btn.id="del_"+data;
-                del_btn.dataset.title = data;
-                del_btn.dataset.opt = "del";
-                del_btn.innerHTML = "Delete";
-                del_btn.addEventListener("click",delete_btn_onClick);
-
-                let _num_input = document.createElement("input");
-                _num_input.id = "num_"+data;
-                _num_input.type = "input";
-                _num_input.dataset.title = data;
-                _num_input.dataset.opt = "num";
-                _num_input.value = "1";
-                _num_input.addEventListener("input",num_count_Change);
-
-                _li.appendChild(_check_input);
-                _li.appendChild(_span);
-                _li.appendChild(min_btn);
-                _li.appendChild(_num_input);
-                _li.appendChild(add_btn);
-                _li.appendChild(del_btn);
-                jlist.appendChild(_li);
-                item_all_count++;
-                item_arr[data] = this;
-                if(is_disabled) {
-                    is_disabled = false;
-                    jselectAll.disabled = false;
-                    jinvertSelect.disabled = false;
-                }
-            }
-        },
-    });
-    Object.defineProperty(shop_item,"item_count",{
-        get: function(){return this._item_count;},
-        set: function(data){
-            let before_count = this._item_count;
-            if(before_count != data) { //阻止循环调用
-                this._item_count = data;
-                if (data <= 0) {//delete
-
-                    let opt_li = document.querySelector('#li_' + this.item_name);
-                    jlist.removeChild(opt_li);
-                    delete item_arr[this.item_name];
-
-                    item_all_count--;
-                    if (item_all_count == 0) {
-                        is_disabled = true;
-                        jselectAll.disabled = true;
-                        jinvertSelect.disabled = true;
-                    }
-
-                } else {//change
-                    let opt_dom = document.querySelector('input[data-title="' + this.item_name + '"][data-opt="num"]');
-                    opt_dom.value = data;
-                }
+    function updatevDomCheckBox(e) {
+        let itemName = e.target.name;
+        for (let item of store.shopItems) {
+            if (itemName === item.name) {
+                item.checked = e.target.checked;
+                break;
             }
         }
-    });
-
-    //事件部分
-    function min_btn_onClick(e){
-        let _title = e.target.dataset.title;
-        item_arr[_title].item_count -=1;
-    }
-    function add_btn_onClick(e){
-        let _title = e.target.dataset.title;
-        item_arr[_title].item_count +=1;
-    }
-    function delete_btn_onClick(e){
-        let _title = e.target.dataset.title;
-        item_arr[_title].item_count = 0;
-    }
-    function num_count_Change(e){
-        e.target.value = e.target.value.replace(/[^0-9]/g,"");
-        let _title = e.target.dataset.title;
-        item_arr[_title].item_count = parseInt(e.target.value) ;
-    }
-    for(let new_count = 0;new_count<3;new_count++){
-        let new_item = Object.create(shop_item);
-        new_item.item_name = "test"+new_count;
-        new_item.item_count = 1;
+        let [ol, newTree] = createBody(store);
+        diffvDom(vOL, ol);
     }
 
-    jaddOne.addEventListener("click",function(){
-        let new_item = Object.create(shop_item);
-        new_item.item_name = jitemName.value;
-        if(item_arr[jitemName.value]) item_arr[jitemName.value].item_count = item_arr[jitemName.value].item_count + 1;
-        else new_item.item_count = 1;
-    });
-    jselectAll.addEventListener("click",function(){
-        for(let item_name in item_arr){
-            let now_element = document.querySelector("input[type='checkbox'][data-title='"+item_name+"']");
-            let now_status = now_element.checked ;
-            if(! now_status){
-                now_element.checked = true;
+    function selectAll() {
+        for (let item of store.shopItems) {
+            item.checked = true;
+        }
+        let [ol, newTree] = createBody(store);
+        diffTree(vOL, ol);
+    }
+
+    function invertSelect() {
+        let i = 0;
+        for (let item of store.shopItems) {
+            item.checked = !item.checked;
+        }
+        let [ol, newTree] = createBody(store);
+        diffTree(vOL, ol);
+    }
+
+    function deleteSelect() {
+        let [ol, newTree] = createBody(store);
+        ol.children = ol.children.filter((item, index, array) => {
+            if (vOL.children[index].children[0].props.checked === "checked") {
+                store.shopItems[index].deleted = true;
+                return false;
+            } else {
+                return true;
             }
-        }
-    });
-    jinvertSelect.addEventListener("click",function(){
-        for(let item_name in item_arr){
-            let now_element = document.querySelector("input[type='checkbox'][data-title='"+item_name+"']");
-            let now_status = now_element.checked ;
-            now_element.checked = (!now_status);
-        }
-    });
-    jdeleteSelect.addEventListener("click",function(){
-        for(let item_name in item_arr){
-            let now_element = document.querySelector("input[type='checkbox'][data-title='"+item_name+"']");
-            let now_status = now_element.checked;
-            if(now_status){
-                item_arr[item_name].item_count = 0;
-            }
-        }
-    });
+        });
+        store.shopItems = store.shopItems.filter((item, index, array) => {
+            return !item.deleted;
+        });
+        diffTree(vOL, ol);
+    }
+
+    function addOne() {
+
+    }
+
+    function diffTree(oldTree, newTree) {
+        let diff = vDomOperator.diff(oldTree, newTree);
+        console.log(oldTree,newTree,diff);
+        vDomOperator.patch(diff);
+    }
+
+    function diffvDom(oldTree,newTree) {
+        let diff = vDomOperator.diff(oldTree, newTree);
+        vDomOperator.patch(diff,false);
+    }
 </script>
