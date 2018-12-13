@@ -22,12 +22,12 @@
     let tree2 = vDomOperator.createElement(
         "div",
         {className: "big", id: "hzytql"},
-        vDomOperator.createElement("span", {className: "small-inner", id: "zcytql"}, "hzytqlb!"),
-        [7, 2, 3, 4].map(n =>
+        vDomOperator.createElement("span", {className: "big-inner", id: "zcytql"}, "hzytqlb"),
+        [ 2, 3, 4, 6].map(n =>
             vDomOperator.createElement("span", {className: "big-inner-number", id: "hzytql" + n}, n)
         ),
         vDomOperator.createElement("span", {className: "big-inner", id: "wqytql"},
-            [7, 8, 2, 3].map(n => vDomOperator.createElement("span", {id: "hzy_tql" + n}, n))
+            [7, 3].map(n => vDomOperator.createElement("span", {id: "hzy_tql" + n}, n))
         )
     );
 

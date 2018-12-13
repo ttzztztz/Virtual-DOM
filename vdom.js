@@ -11,6 +11,7 @@ class vDom {
         this.props = props;
         this.id = this.props.id;
         this.children = children;
+        this.DOM = null;
     }
 
     _render() {
@@ -34,18 +35,19 @@ class vDom {
 
     render(root) {
         let _dom = this._render();
+        this.DOM = _dom;
         root.appendChild(_dom);
     }
 }
 
 class vPatchTree {
-    constructor(tagName, props, operation, diffData, id) {
+    constructor(tagName, props, operation, diffData, id, DOM) {
         this.tagName = tagName;
         this.props = props;
         this.diffData = diffData;
         this.id = id;
         this.operation = operation;
-        this.applied = 0;
+        this.DOM = DOM;
     }
 }
 
@@ -73,7 +75,7 @@ class vDomOperator {
                     init = 0;
                     if (obj1.id === obj2.id) {
                         //founded
-                        let simulateDiff = new vPatchTree(obj1.tagName, obj1.props, DIFF_SIMULATE, pt1, obj1.id);
+                        let simulateDiff = new vPatchTree(obj1.tagName, obj1.props, DIFF_SIMULATE, pt1, obj1.id , obj1.DOM);
                         simulateArray.push(simulateDiff);
                         found = 1;
                         break;
@@ -82,7 +84,7 @@ class vDomOperator {
                     if (pt2 >= len2) pt2 -= len2;
                 }
                 if (!found) {
-                    let notFoundDiff = new vPatchTree(obj1.tagName, obj1.props, DIFF_DELETE, pt1, obj1.id);
+                    let notFoundDiff = new vPatchTree(obj1.tagName, obj1.props, DIFF_DELETE, pt1, obj1.id , obj1.DOM);
                     patch.push(notFoundDiff);
                 }
             }
@@ -92,8 +94,8 @@ class vDomOperator {
             let pt1 = 0;
             for (let pt2 = 0; pt2 < len2; pt2++) {
                 let obj1 = simulateArray[pt1], obj2 = arr2[pt2];
-                if (obj1.id !== obj2.id) {//no Exist -> add
-                    let newDiff = new vPatchTree(obj2.tagName, obj2.props, DIFF_CREATE, [pt1 >= simulateArray.length ? simulateArray[simulateArray.length - 1] : obj1.id, obj2.children, pt1 >= simulateArray.length], obj2.id);
+                if (pt1 >= simulateArray.length || obj1.id !== obj2.id) {//no Exist -> add
+                    let newDiff = new vPatchTree(obj2.tagName, obj2.props, DIFF_CREATE, [pt1 >= simulateArray.length ? simulateArray[simulateArray.length - 1].DOM : obj1.DOM, obj2.children, pt1 >= simulateArray.length], obj2.id , undefined);
                     patch.push(newDiff);
                 } else {//already Exist -> diff
                     pt1++;
@@ -115,11 +117,11 @@ class vDomOperator {
                     }
                     if (hasAttrPatch) {
                         let patchData = this.isTextNode(obj2.children) ? obj2.children : undefined;
-                        let diffAttr = new vPatchTree(obj2.tagName, attrPatch, DIFF_UPDATE_ATTR, patchData, obj2.id);
+                        let diffAttr = new vPatchTree(obj2.tagName, attrPatch, DIFF_UPDATE_ATTR, patchData, obj2.id , obj1.DOM);
                         patch.push(diffAttr);
                     }
                     if (hasDeletePatch) {
-                        let deleteAttr = new vPatchTree(obj2.tagName, deletePatch, DIFF_DELETE_ATTR, undefined, obj2.id);
+                        let deleteAttr = new vPatchTree(obj2.tagName, deletePatch, DIFF_DELETE_ATTR, undefined, obj2.id , obj1.DOM);
                         patch.push(deleteAttr);
                     }
                 }
@@ -149,7 +151,7 @@ class vDomOperator {
             && this.isTextNode(tree2.children)
             && tree1.children !== tree2.children
         ) {
-            let textPatchDiff = new vPatchTree(undefined, undefined, DIFF_UPDATE_TEXT, tree2.children, tree2.id);
+            let textPatchDiff = new vPatchTree(undefined, undefined, DIFF_UPDATE_TEXT, tree2.children, tree2.id , obj1.DOM);
             return [textPatchDiff];
         }
 
@@ -179,11 +181,11 @@ class vDomOperator {
                 }
 
                 if (hasAttrPatch) {
-                    let diffAttr = new vPatchTree(child_tree2.tagName, attrPatch, DIFF_UPDATE_ATTR, attrPatch, child_tree2.id);
+                    let diffAttr = new vPatchTree(child_tree2.tagName, attrPatch, DIFF_UPDATE_ATTR, attrPatch, child_tree2.id , child_tree1.DOM);
                     patch.push(diffAttr);
                 }
                 if (hasDeletePatch) {
-                    let deleteAttr = new vPatchTree(child_tree2.tagName, deletePatch, DIFF_DELETE_ATTR, deletePatch, child_tree2.id);
+                    let deleteAttr = new vPatchTree(child_tree2.tagName, deletePatch, DIFF_DELETE_ATTR, deletePatch, child_tree2.id , child_tree1.DOM);
                     patch.push(deleteAttr);
                 }
 
@@ -197,7 +199,7 @@ class vDomOperator {
                     patch.push(...result);
                 } else if (this.isTextNode(child_tree1.children) && this.isTextNode(child_tree2.children)) {
                     if (child_tree1.children[0] !== child_tree2.children[0]) {
-                        let diffTree = new vPatchTree(undefined, child_tree2.props, DIFF_UPDATE_TEXT, child_tree2.children[0], child_tree2.id);
+                        let diffTree = new vPatchTree(undefined, child_tree2.props, DIFF_UPDATE_TEXT, child_tree2.children[0], child_tree2.id , child_tree1.DOM);
                         patch.push(diffTree);
                     }
                 }
@@ -208,24 +210,23 @@ class vDomOperator {
 
     static createPatch(patch) {
         let [relative, child, appendMode] = patch.diffData;
-        let relativeElement = document.getElementById(relative);
-        let parentElement = relativeElement.parentElement;
+        let parentElement = relative.parentElement;
         let vdom = new vDom(patch.tagName, patch.props, ...child);
         let newElement = vdom._render();
         if (appendMode) {
             parentElement.appendChild(newElement);
         } else {
-            parentElement.insertBefore(newElement, relativeElement);
+            parentElement.insertBefore(newElement, relative);
         }
     }
 
     static deletePatch(patch) {
-        let dom = document.getElementById(patch.id);
+        let dom = patch.DOM;
         dom.remove();
     }
 
     static updateAttrPatch(patch) {
-        let dom = document.getElementById(patch.id);
+        let dom = patch.DOM;
         let diffData = patch.diffData;
         for (let propKey in diffData) {
             dom[propKey] = diffData[propKey];
@@ -233,12 +234,12 @@ class vDomOperator {
     }
 
     static updateTextPatch(patch) {
-        let dom = document.getElementById(patch.id);
+        let dom = patch.DOM;
         dom.innerHTML = patch.diffData;
     }
 
     static deleteAttrPatch(patch) {
-        let dom = document.getElementById(patch.id);
+        let dom = patch.DOM;
         let diffData = patch.diffData;
         for (let propKey in diffData) {
             dom[propKey] = "";
@@ -247,7 +248,6 @@ class vDomOperator {
 
     static dfsPatch(tree, patch) {
         for (let _patch of patch) {
-            if (_patch.applied) continue;
             switch (_patch.operation) {
                 case DIFF_CREATE:
                     this.createPatch(_patch);
@@ -265,21 +265,7 @@ class vDomOperator {
                     this.deleteAttrPatch(_patch);
                     break;
             }
-            _patch.applied = 1;
         }
-
-        for (let child of tree.children) {
-            if (child instanceof vDom) {
-                this.dfsPatch(child, patch);
-            } else if (child instanceof Array) {
-                for (let _child of child) {
-                    if (_child instanceof vDom) {
-                        this.dfsPatch(_child, patch);
-                    }
-                }
-            }
-        }
-
     }
 
 }
