@@ -124,8 +124,6 @@
                 return itemName !== item.name;
             });
         }
-        let [ol, newTree] = createBody();
-        diffTree(vOL, ol);
         setDisabled();
     }
 
@@ -146,18 +144,19 @@
         store.shopItems = store.shopItems.filter((item, index, array) => {
             return itemName !== item.name;
         });
-        let [ol, newTree] = createBody();
-        diffTree(vOL, ol);
         setDisabled();
     }
 
     function setDisabled() {
-        // let nowStatus = store.shopItems.length <= 0;
-        // if (nowStatus !== store.disabled) {
-        //     store.disabled = !store.disabled;
-        //     let [ol, newTree] = createBody();
-        //     diffTree(vBody, newTree);
-        // }
+        let nowStatus = store.shopItems.length <= 0;
+        if (nowStatus !== store.disabled) {
+            store.disabled = !store.disabled;
+            let [ol, newTree] = createBody();
+            diffTree(vBody, newTree);
+        } else {
+            let [ol, newTree] = createBody();
+            diffTree(vOL, ol);
+        }
     }
 
     function numOnInput(e) {
@@ -236,14 +235,11 @@
             shopItem = new ShopItem(store.addOneInput, 1, false);
             store.shopItems.push(shopItem);
         }
-        let [ol, newTree] = createBody();
-        diffTree(vOL, ol);
         setDisabled();
     }
 
     function diffTree(oldTree, newTree) {
         let diff = vDomOperator.diff(oldTree, newTree);
-        console.log(oldTree, newTree, diff);
         vDomOperator.patch(diff);
     }
 

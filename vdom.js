@@ -120,7 +120,7 @@ class vDomOperator {
 
                     if (simulateArray.length > 0) {
                         let newDiff = new vPatchTree(obj2.tagName, obj2.props, DIFF_CREATE,
-                            [pt1 >= simulateArray.length ? simulateArray[simulateArray.length - 1] : obj1, obj2.children, pt1 >= simulateArray.length , arr1],
+                            [pt1 >= simulateArray.length ? simulateArray[simulateArray.length - 1] : obj1, obj2.children, pt1 >= simulateArray.length, arr1],
                             obj2.id,
                             pt1 >= simulateArray.length ? simulateArray[simulateArray.length - 1].vDOM : obj1.vDOM);
                         patch.push(newDiff);
@@ -177,10 +177,6 @@ class vDomOperator {
             }
         }
         return patch;
-    }
-
-    static isTextNode(tree) {
-        return typeof tree === "number" || typeof tree === "string" || (tree instanceof Array && tree.length === 1 && (typeof tree[0] === "number" || typeof tree[0] === "string")) || (tree instanceof Array && tree.length === 0);
     }
 
     static diff(tree1, tree2) {
@@ -243,7 +239,7 @@ class vDomOperator {
                     if (patchChildren.length > 0) {
                         patch.push(...patchChildren);
                     }
-                } else if (!this.isTextNode(child_tree1.children) && !this.isTextNode(child_tree2.children)) {
+                } else if (!this.isTextNode(child_tree1) && !this.isTextNode(child_tree2)) {
                     let result = this.diff(child_tree1, child_tree2);
                     patch.push(...result);
                 } else if (this.isTextNode(child_tree1.children) && this.isTextNode(child_tree2.children) && !this.textNodeEquals(child_tree1.children, child_tree2.children)) {
@@ -257,6 +253,10 @@ class vDomOperator {
 
     static textNodeEquals(tree1, tree2) {
         return (!(tree1[0] instanceof Array) && !(tree2[0] instanceof Array) && tree1[0] === tree2[0]) || (tree1[0] instanceof Array && tree2[0] instanceof Array && tree1[0][0] === tree2[0][0]);
+    }
+
+    static isTextNode(tree) {
+        return typeof tree === "number" || typeof tree === "string" || (tree instanceof Array && tree.length === 1 && (typeof tree[0] === "number" || typeof tree[0] === "string")) || (tree instanceof Array && tree.length === 0);
     }
 
     static createPatch(patch, applyToRealDom = true) {
