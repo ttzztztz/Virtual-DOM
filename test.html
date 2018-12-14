@@ -1,33 +1,5 @@
 <html>
-<body id="body">
-
-</body>
+    <body>
+        <div id="tql">hzytql<!--zcy tql--></div>
+    </body>
 </html>
-<script src="vdom.js"></script>
-<script>
-    let body = document.getElementById("body");
-
-    let tree1 = vDomOperator.createElement(
-        "div",
-        {className: "big", id: "hzytql"},
-        vDomOperator.createElement("span", {className: "big-inner", id: "zcytql"}, "hehe"),
-        [1, 2, 3, 4, 5].map(n =>
-            vDomOperator.createElement("span", {className: "big-inner-number", id: "hzytql" + n}, n)
-        )
-    );
-
-    let tree2 = vDomOperator.createElement(
-        "div",
-        {className: "big", id: "hzytql"},
-        vDomOperator.createElement("span", {className: "big-inner", id: "zcytql"}, "hzytqlb"),
-        [ 2, 3, 4, 6].map(n =>
-            vDomOperator.createElement("span", {className: "big-inner-number", id: "hzytql" + n}, n)
-        )
-    );
-
-    tree1.render(body);
-    console.log(tree1);
-    let result = vDomOperator.diff(tree1, tree2);
-    console.log(result);
-    vDomOperator.patch(result);
-</script>
