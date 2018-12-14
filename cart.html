@@ -31,7 +31,7 @@
         addOneInput: "hzytql"
     };
 
-    function createBody(store) {
+    function createBody() {
         let shopItemvDomArr = [];
         for (let item of store.shopItems) {
             shopItemvDomArr.push(item.render());
@@ -80,7 +80,8 @@
             }, id),
             vDomOperator.createElement("button", {
                 id: "min_" + id,
-                name: id
+                name: id,
+                onclick: minAItem
             }, "-"),
             vDomOperator.createElement("input", {
                 id: "num_" + id,
@@ -91,25 +92,72 @@
             }, "-"),
             vDomOperator.createElement("button", {
                 id: "add_" + id,
-                name: id
+                name: id,
+                onclick: maxAItem
             }, "+"),
             vDomOperator.createElement("button", {
                 id: "del_" + id,
-                name: id
+                name: id,
+                onclick: deleteButtonOnClick
             }, "Delete")
         );
     }
 
-    for (let i = 1; i <= 3; i++) {
-        let shopItem = new ShopItem("test" + i, 1, false);
-        store.shopItems.push(shopItem);
-    }
-
-    let [vOL, vBody] = createBody(store);
-    vBody.render(document.body);
-
     function addOneInput(e) {
         store.addOneInput = e.target.value;
+    }
+
+    function minAItem(e) {
+        let itemName = e.target.name;
+        let deletethis = 0;
+        for (let item of store.shopItems) {
+            if (item.name === itemName) {
+                item.num--;
+                if (item.num <= 0) {
+                    deletethis = 1;
+                }
+                break;
+            }
+        }
+        if (deletethis) {
+            store.shopItems = store.shopItems.filter((item, index, array) => {
+                return itemName !== item.name;
+            });
+        }
+        let [ol, newTree] = createBody();
+        diffTree(vOL, ol);
+        setDisabled();
+    }
+
+    function maxAItem(e) {
+        let itemName = e.target.name;
+        for (let item of store.shopItems) {
+            if (item.name === itemName) {
+                item.num++;
+                break;
+            }
+        }
+        let [ol, newTree] = createBody();
+        diffTree(vOL, ol);
+    }
+
+    function deleteButtonOnClick(e) {
+        let itemName = e.target.name;
+        store.shopItems = store.shopItems.filter((item, index, array) => {
+            return itemName !== item.name;
+        });
+        let [ol, newTree] = createBody();
+        diffTree(vOL, ol);
+        setDisabled();
+    }
+
+    function setDisabled() {
+        // let nowStatus = store.shopItems.length <= 0;
+        // if (nowStatus !== store.disabled) {
+        //     store.disabled = !store.disabled;
+        //     let [ol, newTree] = createBody();
+        //     diffTree(vBody, newTree);
+        // }
     }
 
     function numOnInput(e) {
@@ -121,7 +169,7 @@
                 break;
             }
         }
-        let [ol, newTree] = createBody(store);
+        let [ol, newTree] = createBody();
         diffvDom(vOL, ol, false);
     }
 
@@ -133,7 +181,7 @@
                 break;
             }
         }
-        let [ol, newTree] = createBody(store);
+        let [ol, newTree] = createBody();
         diffvDom(vOL, ol);
     }
 
@@ -141,7 +189,7 @@
         for (let item of store.shopItems) {
             item.checked = true;
         }
-        let [ol, newTree] = createBody(store);
+        let [ol, newTree] = createBody();
         diffTree(vOL, ol);
     }
 
@@ -150,12 +198,12 @@
         for (let item of store.shopItems) {
             item.checked = !item.checked;
         }
-        let [ol, newTree] = createBody(store);
+        let [ol, newTree] = createBody();
         diffTree(vOL, ol);
     }
 
     function deleteSelect() {
-        let [ol, newTree] = createBody(store);
+        let [ol, newTree] = createBody();
         ol.children[0] = ol.children[0].filter((item, index, array) => {
             if (store.shopItems[index].checked) {
                 store.shopItems[index].deleted = true;
@@ -168,10 +216,11 @@
             return !item.deleted;
         });
         diffTree(vOL, ol);
+        setDisabled();
     }
 
     function addOne() {
-        let find = 0 , shopItem = null;
+        let find = 0, shopItem = null;
         store.shopItems.some((item, index, array) => {
             if (item.name === store.addOneInput) {
                 shopItem = item;
@@ -182,13 +231,14 @@
             }
         });
         if (find) {
-            shopItem.num ++;
+            shopItem.num++;
         } else {
             shopItem = new ShopItem(store.addOneInput, 1, false);
             store.shopItems.push(shopItem);
         }
-        let [ol, newTree] = createBody(store);
+        let [ol, newTree] = createBody();
         diffTree(vOL, ol);
+        setDisabled();
     }
 
     function diffTree(oldTree, newTree) {
@@ -201,4 +251,12 @@
         let diff = vDomOperator.diff(oldTree, newTree);
         vDomOperator.patch(diff, false);
     }
+
+    for (let i = 1; i <= 3; i++) {
+        let shopItem = new ShopItem("test" + i, 1, false);
+        store.shopItems.push(shopItem);
+    }
+
+    let [vOL, vBody] = createBody();
+    vBody.render(document.body);
 </script>
