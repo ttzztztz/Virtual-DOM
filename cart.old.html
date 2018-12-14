@@ -188,3 +188,29 @@
         }
     });
 </script>
+<script>
+    const speedTest = () => {
+        for(let new_count = 1;new_count<1e3;new_count++){
+            let new_item = Object.create(shop_item);
+            new_item.item_name = "speedTest"+new_count;
+            new_item.item_count = 1;
+        }
+        let time1 = new Date().getTime();
+        for(let item_name in item_arr){
+            let now_element = document.querySelector("input[type='checkbox'][data-title='"+item_name+"']");
+            let now_status = now_element.checked ;
+            if(! now_status){
+                now_element.checked = true;
+            }
+        }
+        for(let item_name in item_arr){
+            let now_element = document.querySelector("input[type='checkbox'][data-title='"+item_name+"']");
+            let now_status = now_element.checked;
+            if(now_status){
+                item_arr[item_name].item_count = 0;
+            }
+        }
+        let time2 = new Date().getTime();
+        return time2 - time1;
+    };
+</script>
