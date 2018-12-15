@@ -23,7 +23,7 @@
 </div>
 </body>
 </html>
-<script  src="vdom.js"></script>
+<script src="vdom.js"></script>
 <script>
     let jselectAll = document.querySelector("#selectAll");
     let jinvertSelect = document.querySelector("#invertSelect");
@@ -36,57 +36,59 @@
     let item_arr = new Array();
     let item_all_count = 0;
     let shop_item = {
-        _item_name : "test",
-        _item_count : 0,
+        _item_name: "test",
+        _item_count: 0,
     };
-    Object.defineProperty(shop_item,"item_name", {
-        get : function() {return this._item_name;},
-        set : function(data){
+    Object.defineProperty(shop_item, "item_name", {
+        get: function () {
+            return this._item_name;
+        },
+        set: function (data) {
             this._item_name = data;
-            if(!item_arr[data]) {//不存在则创建
+            if (!item_arr[data]) {//不存在则创建
                 let _li = document.createElement("li");
-                _li.id = "li_"+data;
+                _li.id = "li_" + data;
                 _li.dataset.title = data;
 
                 let _check_input = document.createElement("input");
-                _check_input.id = "check_"+data;
+                _check_input.id = "check_" + data;
                 _check_input.type = "checkbox";
                 _check_input.dataset.title = data;
                 _check_input.dataset.opt = "check";
 
                 let _span = document.createElement("span");
-                _span.id="title_"+data;
+                _span.id = "title_" + data;
                 _span.dataset.title = data;
                 _span.innerHTML = data;
 
                 let min_btn = document.createElement("button");
-                min_btn.id="min_"+data;
+                min_btn.id = "min_" + data;
                 min_btn.dataset.title = data;
-                min_btn.dataset.opt="min";
+                min_btn.dataset.opt = "min";
                 min_btn.innerHTML = "-";
-                min_btn.addEventListener("click",min_btn_onClick);
+                min_btn.addEventListener("click", min_btn_onClick);
 
                 let add_btn = document.createElement("button");
-                add_btn.id="add_"+data;
+                add_btn.id = "add_" + data;
                 add_btn.dataset.title = data;
-                add_btn.dataset.opt="add";
+                add_btn.dataset.opt = "add";
                 add_btn.innerHTML = "+";
-                add_btn.addEventListener("click",add_btn_onClick);
+                add_btn.addEventListener("click", add_btn_onClick);
 
                 let del_btn = document.createElement("button");
-                del_btn.id="del_"+data;
+                del_btn.id = "del_" + data;
                 del_btn.dataset.title = data;
                 del_btn.dataset.opt = "del";
                 del_btn.innerHTML = "Delete";
-                del_btn.addEventListener("click",delete_btn_onClick);
+                del_btn.addEventListener("click", delete_btn_onClick);
 
                 let _num_input = document.createElement("input");
-                _num_input.id = "num_"+data;
+                _num_input.id = "num_" + data;
                 _num_input.type = "input";
                 _num_input.dataset.title = data;
                 _num_input.dataset.opt = "num";
                 _num_input.value = "1";
-                _num_input.addEventListener("input",num_count_Change);
+                _num_input.addEventListener("input", num_count_Change);
 
                 _li.appendChild(_check_input);
                 _li.appendChild(_span);
@@ -97,7 +99,7 @@
                 jlist.appendChild(_li);
                 item_all_count++;
                 item_arr[data] = this;
-                if(is_disabled) {
+                if (is_disabled) {
                     is_disabled = false;
                     jselectAll.disabled = false;
                     jinvertSelect.disabled = false;
@@ -105,11 +107,13 @@
             }
         },
     });
-    Object.defineProperty(shop_item,"item_count",{
-        get: function(){return this._item_count;},
-        set: function(data){
+    Object.defineProperty(shop_item, "item_count", {
+        get: function () {
+            return this._item_count;
+        },
+        set: function (data) {
             let before_count = this._item_count;
-            if(before_count != data) { //阻止循环调用
+            if (before_count != data) { //阻止循环调用
                 this._item_count = data;
                 if (data <= 0) {//delete
 
@@ -133,81 +137,89 @@
     });
 
     //事件部分
-    function min_btn_onClick(e){
+    function min_btn_onClick(e) {
         let _title = e.target.dataset.title;
-        item_arr[_title].item_count -=1;
+        item_arr[_title].item_count -= 1;
     }
-    function add_btn_onClick(e){
+
+    function add_btn_onClick(e) {
         let _title = e.target.dataset.title;
-        item_arr[_title].item_count +=1;
+        item_arr[_title].item_count += 1;
     }
-    function delete_btn_onClick(e){
+
+    function delete_btn_onClick(e) {
         let _title = e.target.dataset.title;
         item_arr[_title].item_count = 0;
     }
-    function num_count_Change(e){
-        e.target.value = e.target.value.replace(/[^0-9]/g,"");
+
+    function num_count_Change(e) {
+        e.target.value = e.target.value.replace(/[^0-9]/g, "");
         let _title = e.target.dataset.title;
-        item_arr[_title].item_count = parseInt(e.target.value) ;
+        item_arr[_title].item_count = parseInt(e.target.value);
     }
-    for(let new_count = 0;new_count<3;new_count++){
+
+    for (let new_count = 0; new_count < 3; new_count++) {
         let new_item = Object.create(shop_item);
-        new_item.item_name = "test"+new_count;
+        new_item.item_name = "test" + new_count;
         new_item.item_count = 1;
     }
 
-    jaddOne.addEventListener("click",function(){
+    jaddOne.addEventListener("click", function () {
         let new_item = Object.create(shop_item);
         new_item.item_name = jitemName.value;
-        if(item_arr[jitemName.value]) item_arr[jitemName.value].item_count = item_arr[jitemName.value].item_count + 1;
+        if (item_arr[jitemName.value]) item_arr[jitemName.value].item_count = item_arr[jitemName.value].item_count + 1;
         else new_item.item_count = 1;
     });
-    jselectAll.addEventListener("click",function(){
-        for(let item_name in item_arr){
-            let now_element = document.querySelector("input[type='checkbox'][data-title='"+item_name+"']");
-            let now_status = now_element.checked ;
-            if(! now_status){
+    jselectAll.addEventListener("click", function () {
+        for (let item_name in item_arr) {
+            let now_element = document.querySelector("input[type='checkbox'][data-title='" + item_name + "']");
+            let now_status = now_element.checked;
+            if (!now_status) {
                 now_element.checked = true;
             }
         }
     });
-    jinvertSelect.addEventListener("click",function(){
-        for(let item_name in item_arr){
-            let now_element = document.querySelector("input[type='checkbox'][data-title='"+item_name+"']");
-            let now_status = now_element.checked ;
+    jinvertSelect.addEventListener("click", function () {
+        for (let item_name in item_arr) {
+            let now_element = document.querySelector("input[type='checkbox'][data-title='" + item_name + "']");
+            let now_status = now_element.checked;
             now_element.checked = (!now_status);
         }
     });
-    jdeleteSelect.addEventListener("click",function(){
-        for(let item_name in item_arr){
-            let now_element = document.querySelector("input[type='checkbox'][data-title='"+item_name+"']");
+    jdeleteSelect.addEventListener("click", function () {
+        for (let item_name in item_arr) {
+            let now_element = document.querySelector("input[type='checkbox'][data-title='" + item_name + "']");
             let now_status = now_element.checked;
-            if(now_status){
+            if (now_status) {
                 item_arr[item_name].item_count = 0;
             }
         }
     });
 </script>
 <script>
-    const speedTest = () => {
-        for(let new_count = 1;new_count<1e3;new_count++){
+    const prepare = () => {
+        for (let new_count = 1; new_count < 1e3; new_count++) {
             let new_item = Object.create(shop_item);
-            new_item.item_name = "speedTest"+new_count;
+            new_item.item_name = "speedTest" + new_count;
             new_item.item_count = 1;
         }
+        return "OK";
+    };
+    const speedTest = () => {
+
         let time1 = new Date().getTime();
         console.log(time1);
-        for(let item_name in item_arr){
-            let now_element = document.querySelector("input[type='checkbox'][data-title='"+item_name+"']");
-            let now_status = now_element.checked ;
-            if(! now_status){
+        for (let item_name in item_arr) {
+            let now_element = document.querySelector("input[type='checkbox'][data-title='" + item_name + "']");
+            let now_status = now_element.checked;
+            if (!now_status) {
                 now_element.checked = true;
             }
         }
-        for(let item_name in item_arr){
-            let now_element = document.querySelector("input[type='checkbox'][data-title='"+item_name+"']");
+        for (let item_name in item_arr) {
+            let now_element = document.querySelector("input[type='checkbox'][data-title='" + item_name + "']");
             let now_status = now_element.checked;
-            if(now_status){
+            if (now_status) {
                 item_arr[item_name].item_count = 0;
             }
         }
