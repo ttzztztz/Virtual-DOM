@@ -196,6 +196,7 @@
             new_item.item_count = 1;
         }
         let time1 = new Date().getTime();
+        console.log(time1);
         for(let item_name in item_arr){
             let now_element = document.querySelector("input[type='checkbox'][data-title='"+item_name+"']");
             let now_status = now_element.checked ;
@@ -211,6 +212,7 @@
             }
         }
         let time2 = new Date().getTime();
+        console.log(time2);
         return time2 - time1;
     };
 </script>
